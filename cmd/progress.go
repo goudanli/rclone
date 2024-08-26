@@ -96,17 +96,18 @@ func printProgress(logMessage string) {
 		out("\n")
 		out(terminal.MoveUp)
 	}
+	out("\n")
 	// Move to the start of the block we wrote erasing all the previous lines
-	for i := 0; i < nlines-1; i++ {
-		out(terminal.EraseLine)
-		out(terminal.MoveUp)
-	}
-	out(terminal.EraseLine)
-	out(terminal.MoveToStartOfLine)
-	if logMessage != "" {
-		out(terminal.EraseLine)
-		out(logMessage + "\n")
-	}
+	// for i := 0; i < nlines-1; i++ {
+	// 	out(terminal.EraseLine)
+	// 	out(terminal.MoveUp)
+	// }
+	// out(terminal.EraseLine)
+	// out(terminal.MoveToStartOfLine)
+	// if logMessage != "" {
+	// 	out(terminal.EraseLine)
+	// 	out(logMessage + "\n")
+	// }
 	fixedLines := strings.Split(stats, "\n")
 	nlines = len(fixedLines)
 	for i, line := range fixedLines {
