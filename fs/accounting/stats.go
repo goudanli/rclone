@@ -45,6 +45,7 @@ type StatsInfo struct {
 	transferring        *transferMap
 	transferQueue       int
 	transferQueueSize   int64
+	statsBaseSize       int64
 	renames             int64
 	renameQueue         int
 	renameQueueSize     int64
@@ -79,13 +80,14 @@ type averageValues struct {
 func NewStats(ctx context.Context) *StatsInfo {
 	ci := fs.GetConfig(ctx)
 	return &StatsInfo{
-		ctx:          ctx,
-		ci:           ci,
-		checking:     newTransferMap(ci.Checkers, "checking"),
-		transferring: newTransferMap(ci.Transfers, "transferring"),
-		inProgress:   newInProgress(ctx),
-		startTime:    time.Now(),
-		average:      averageValues{stop: make(chan bool)},
+		ctx:           ctx,
+		ci:            ci,
+		checking:      newTransferMap(ci.Checkers, "checking"),
+		transferring:  newTransferMap(ci.Transfers, "transferring"),
+		inProgress:    newInProgress(ctx),
+		startTime:     time.Now(),
+		average:       averageValues{stop: make(chan bool)},
+		statsBaseSize: ci.StatsBaseSize,
 	}
 }
 
@@ -426,14 +428,15 @@ func (s *StatsInfo) String() string {
 		}
 	}
 
-	_, _ = fmt.Fprintf(buf, "%s%13s / %s, %s, %s, ETA %s%s",
+	_, _ = fmt.Fprintf(buf, "%s%13s / %s, %s, %s, ETA %s%s, %d",
 		dateString,
-		fs.SizeSuffix(s.bytes).ByteUnit(),
-		fs.SizeSuffix(ts.totalBytes).ByteUnit(),
-		percent(s.bytes, ts.totalBytes),
+		fs.SizeSuffix(s.bytes+s.statsBaseSize).ByteUnit(),
+		fs.SizeSuffix(ts.totalBytes+s.statsBaseSize).ByteUnit(),
+		percent(s.bytes+s.statsBaseSize, ts.totalBytes+s.statsBaseSize),
 		displaySpeedString,
 		etaString(s.bytes, ts.totalBytes, ts.speed),
 		xfrchkString,
+		fs.SizeSuffix(ts.totalBytes+s.statsBaseSize),
 	)
 
 	if s.ci.ProgressTerminalTitle {

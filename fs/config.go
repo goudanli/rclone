@@ -67,6 +67,11 @@ var ConfigOptionsInfo = Options{{
 	Help:    "Number of file transfers to run in parallel",
 	Groups:  "Performance",
 }, {
+	Name:    "stats_base_size",
+	Default: 0,
+	Help:    "base size for stats calculation",
+	Groups:  "Copy",
+}, {
 	Name:     "checksum",
 	ShortOpt: "c",
 	Default:  false,
@@ -545,6 +550,7 @@ type ConfigInfo struct {
 	ModifyWindow               time.Duration     `config:"modify_window"`
 	Checkers                   int               `config:"checkers"`
 	Transfers                  int               `config:"transfers"`
+	StatsBaseSize              int64             `config:"stats_base_size"`
 	ConnectTimeout             time.Duration     `config:"contimeout"` // Connect timeout
 	Timeout                    time.Duration     `config:"timeout"`    // Data channel timeout
 	ExpectContinueTimeout      time.Duration     `config:"expect_continue_timeout"`
