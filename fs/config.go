@@ -64,6 +64,7 @@ type ConfigInfo struct {
 	ModifyWindow               time.Duration
 	Checkers                   int
 	Transfers                  int
+	StatsBaseSize              int64
 	ConnectTimeout             time.Duration // Connect timeout
 	Timeout                    time.Duration // Data channel timeout
 	ExpectContinueTimeout      time.Duration
