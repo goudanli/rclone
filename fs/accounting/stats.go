@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -63,6 +64,7 @@ type StatsInfo struct {
 	serverSideCopyBytes int64
 	serverSideMoves     int64
 	serverSideMoveBytes int64
+	IgnoreErrors        bool
 }
 
 type averageValues struct {
@@ -88,6 +90,7 @@ func NewStats(ctx context.Context) *StatsInfo {
 		startTime:     time.Now(),
 		average:       averageValues{stop: make(chan bool)},
 		statsBaseSize: ci.StatsBaseSize,
+		IgnoreErrors:  ci.IgnoreErrors,
 	}
 }
 
@@ -709,6 +712,10 @@ func (s *StatsInfo) Errored() bool {
 
 // Error adds a single error into the stats, assigns lastError and eventually sets fatalError or retryError
 func (s *StatsInfo) Error(err error) error {
+	if s.IgnoreErrors {
+		fmt.Fprintf(os.Stderr, "Failed: %s\n", err.Error())
+		return nil
+	}
 	if err == nil || fserrors.IsCounted(err) {
 		return err
 	}

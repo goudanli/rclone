@@ -58,7 +58,7 @@ func AddFlags(ci *fs.ConfigInfo, flagSet *pflag.FlagSet) {
 	flags.BoolVarP(flagSet, &ci.SizeOnly, "size-only", "", ci.SizeOnly, "Skip based on size only, not modtime or checksum", "Copy")
 	flags.BoolVarP(flagSet, &ci.IgnoreTimes, "ignore-times", "I", ci.IgnoreTimes, "Don't skip files that match size and time - transfer all files", "Copy")
 	flags.BoolVarP(flagSet, &ci.IgnoreExisting, "ignore-existing", "", ci.IgnoreExisting, "Skip all files that exist on destination", "Copy")
-	flags.BoolVarP(flagSet, &ci.IgnoreErrors, "ignore-errors", "", ci.IgnoreErrors, "Delete even if there are I/O errors", "Sync")
+	flags.BoolVarP(flagSet, &ci.IgnoreErrors, "ignore-errors", "", ci.IgnoreErrors, "Delete even if there are I/O errors", "Sync,Copy")
 	flags.BoolVarP(flagSet, &ci.DryRun, "dry-run", "n", ci.DryRun, "Do a trial run with no permanent changes", "Config,Important")
 	flags.BoolVarP(flagSet, &ci.Interactive, "interactive", "i", ci.Interactive, "Enable interactive mode", "Config,Important")
 	flags.DurationVarP(flagSet, &ci.ConnectTimeout, "contimeout", "", ci.ConnectTimeout, "Connect timeout", "Networking")
