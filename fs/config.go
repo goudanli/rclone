@@ -97,7 +97,7 @@ var ConfigOptionsInfo = Options{{
 	Name:    "ignore_errors",
 	Default: false,
 	Help:    "Delete even if there are I/O errors",
-	Groups:  "Sync",
+	Groups:  "Sync,Copy",
 }, {
 	Name:     "dry_run",
 	ShortOpt: "n",
