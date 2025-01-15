@@ -14,7 +14,7 @@ import (
 func GetSize() (w, h int) {
 	w, h, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
-		w, h = 80, 25
+		w, h = 1024, 25
 	}
 	return w, h
 }
