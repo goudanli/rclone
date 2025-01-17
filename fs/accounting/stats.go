@@ -712,7 +712,7 @@ func (s *StatsInfo) Errored() bool {
 
 // Error adds a single error into the stats, assigns lastError and eventually sets fatalError or retryError
 func (s *StatsInfo) Error(err error) error {
-	if s.IgnoreErrors {
+	if s.IgnoreErrors && err != nil{
 		fmt.Fprintf(os.Stderr, "Failed: %s\n", err.Error())
 		return nil
 	}
