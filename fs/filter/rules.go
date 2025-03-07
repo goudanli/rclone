@@ -18,6 +18,7 @@ type RulesOpt struct {
 	ExcludeFrom []string `config:"exclude_from"`
 	IncludeRule []string `config:"include"`
 	IncludeFrom []string `config:"include_from"`
+	MustFrom    []string `config:"must_from"`
 }
 
 // rule is one filter rule
@@ -95,7 +96,7 @@ func (rs *rules) include(remote string) bool {
 			return rule.Include
 		}
 	}
-	return true
+	return false
 }
 
 // include returns whether this collection of strings remote passes
@@ -112,7 +113,7 @@ func (rs *rules) includeMany(remotes []string) bool {
 			}
 		}
 	}
-	return true
+	return false
 }
 
 // forEachLine calls fn on every line in the file pointed to by path
@@ -251,5 +252,17 @@ func parseRules(opt *RulesOpt, add addFn, clear clearFn) (err error) {
 		}
 	}
 
+	return nil
+}
+
+func parseMustRules(opt *RulesOpt, add addFn) (err error) {
+	for _, rule := range opt.MustFrom {
+		err := forEachLine(rule, false, func(line string) error {
+			return add(true, line)
+		})
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

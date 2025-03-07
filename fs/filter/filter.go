@@ -97,6 +97,11 @@ var OptionsInfo = fs.Options{{
 	Help:    "Read file include patterns from file (use - to read from stdin)",
 	Groups:  "Filter",
 }, {
+	Name:    "must_from",
+	Default: []string{},
+	Help:    "Read file include patterns from file (use - to read from stdin)",
+	Groups:  "Filter",
+}, {
 	Name:    "metadata_filter",
 	Default: []string{},
 	Help:    "Add a metadata filtering rule",
@@ -160,14 +165,16 @@ type FilesMap map[string]struct{}
 
 // Filter describes any filtering in operation
 type Filter struct {
-	Opt         Options
-	ModTimeFrom time.Time
-	ModTimeTo   time.Time
-	fileRules   rules
-	dirRules    rules
-	metaRules   rules
-	files       FilesMap // files if filesFrom
-	dirs        FilesMap // dirs from filesFrom
+	Opt           Options
+	ModTimeFrom   time.Time
+	ModTimeTo     time.Time
+	fileRules     rules
+	dirRules      rules
+	mustFileRules rules
+	mustDirRules  rules
+	metaRules     rules
+	files         FilesMap // files if filesFrom
+	dirs          FilesMap // dirs from filesFrom
 }
 
 // NewFilter parses the command line options and creates a Filter
@@ -196,6 +203,11 @@ func NewFilter(opt *Options) (f *Filter, err error) {
 	}
 
 	err = parseRules(&f.Opt.RulesOpt, f.Add, f.Clear)
+	if err != nil {
+		return nil, err
+	}
+
+	err = parseMustRules(&f.Opt.RulesOpt, f.AddMust)
 	if err != nil {
 		return nil, err
 	}
@@ -301,6 +313,42 @@ func (f *Filter) Add(Include bool, glob string) error {
 	return nil
 }
 
+func (f *Filter) AddMust(Include bool, glob string) error {
+	isDirRule := strings.HasSuffix(glob, "/")
+	isFileRule := !isDirRule
+	// Make excluding "dir/" equivalent to excluding "dir/**"
+	if isDirRule && !Include {
+		glob += "**"
+	}
+	if strings.Contains(glob, "**") {
+		isDirRule, isFileRule = true, true
+	}
+	re, err := GlobPathToRegexp(glob, f.Opt.IgnoreCase)
+	if err != nil {
+		return err
+	}
+	if isFileRule {
+		f.mustFileRules.add(Include, re)
+		// If include rule work out what directories are needed to scan
+		// if exclude rule, we can't rule anything out
+		// Unless it is `*` which matches everything
+		// NB ** and /** are DirRules
+		if Include || glob == "*" {
+			err = f.addDirGlobs(Include, glob)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	if isDirRule {
+		f.mustDirRules.add(Include, re)
+	}
+	// fmt.Println("glob:", glob)
+	// fmt.Println("mustFileRules:", f.mustFileRules.rules)
+	// fmt.Println("mustDirRules:", f.mustDirRules.rules)
+	return nil
+}
+
 // AddRule adds a filter rule with include/exclude indicated by the prefix
 //
 // These are
@@ -354,6 +402,8 @@ func (f *Filter) Files() FilesMap {
 func (f *Filter) Clear() {
 	f.fileRules.clear()
 	f.dirRules.clear()
+	f.mustFileRules.clear()
+	f.mustDirRules.clear()
 	f.metaRules.clear()
 }
 
@@ -404,6 +454,11 @@ func (f *Filter) ListContainsExcludeFile(entries fs.DirEntries) bool {
 func (f *Filter) IncludeDirectory(ctx context.Context, fs fs.Fs) func(string) (bool, error) {
 	return func(remote string) (bool, error) {
 		remote = strings.Trim(remote, "/")
+		if f.mustDirRules.len() > 0 {
+			if f.mustDirRules.include(remote + "/") {
+				return true, nil
+			}
+		}
 		// first check if we need to remove directory based on
 		// the exclude file
 		excl, err := f.DirContainsExcludeFile(ctx, fs, remote)
@@ -495,6 +550,12 @@ func (f *Filter) Include(remote string, size int64, modTime time.Time, metadata 
 // the sync or not. This is a convenience function to avoid calling
 // o.ModTime(), which is an expensive operation.
 func (f *Filter) IncludeObject(ctx context.Context, o fs.Object) bool {
+	if f.mustFileRules.len() > 0 {
+		if f.mustFileRules.include(o.Remote()) {
+			// fmt.Println("mustFileRules", o.Remote())
+			return true
+		}
+	}
 	var modTime time.Time
 
 	if !f.ModTimeFrom.IsZero() || !f.ModTimeTo.IsZero() {
