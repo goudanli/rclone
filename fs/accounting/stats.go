@@ -20,6 +20,9 @@ import (
 const (
 	averagePeriodLength = time.Second
 	averageStopAfter    = time.Minute
+	StatusSuccess       = 1 // 正常完成
+	StatusFailed        = 2 // 失败
+	StatusStop          = 3 // 被终止
 )
 
 // MaxCompletedTransfers specifies maximum number of completed transfers in startedTransfers list
@@ -65,6 +68,8 @@ type StatsInfo struct {
 	serverSideMoves     int64
 	serverSideMoveBytes int64
 	IgnoreErrors        bool
+	backupReporter      *BackupReporter // 新增：备份报告器
+	taskReporter        *TaskReporter   // 新增：任务报告器
 }
 
 type averageValues struct {
@@ -81,7 +86,7 @@ type averageValues struct {
 // NewStats creates an initialised StatsInfo
 func NewStats(ctx context.Context) *StatsInfo {
 	ci := fs.GetConfig(ctx)
-	return &StatsInfo{
+	s := &StatsInfo{
 		ctx:           ctx,
 		ci:            ci,
 		checking:      newTransferMap(ci.Checkers, "checking"),
@@ -92,6 +97,16 @@ func NewStats(ctx context.Context) *StatsInfo {
 		statsBaseSize: ci.StatsBaseSize,
 		IgnoreErrors:  ci.IgnoreErrors,
 	}
+
+	// 如果配置了备份报告服务器URL，则初始化备份报告器
+	if ci.BackupReportURL != "" {
+		s.backupReporter = NewBackupReporter(ctx, s, ci.BackupReportURL)
+		s.backupReporter.Start()
+		// 同时初始化任务报告器
+		s.taskReporter = NewTaskReporter(ctx, s, ci.BackupReportURL)
+	}
+
+	return s
 }
 
 // RemoteStats returns stats for rc
@@ -820,6 +835,15 @@ func (s *StatsInfo) DoneTransferring(remote string, ok bool) {
 	}
 	if s.transferring.empty() && s.checking.empty() {
 		time.AfterFunc(averageStopAfter, s.stopAverageLoop)
+		if s.backupReporter != nil {
+			s.backupReporter.Stop()
+		}
+		// 当所有传输完成时发送任务完成状态
+		if s.taskReporter != nil {
+			if err := s.taskReporter.ReportTaskComplete(StatusSuccess); err != nil {
+				fs.Errorf(nil, "Failed to send task completion report: %v", err)
+			}
+		}
 	}
 }
 
@@ -930,4 +954,17 @@ func (s *StatsInfo) AddServerSideCopy(n int64) {
 	s.serverSideCopies += 1
 	s.serverSideCopyBytes += n
 	s.mu.Unlock()
+}
+
+// 处理信号
+func (s *StatsInfo) HandleSignal() {
+	if s.backupReporter != nil {
+		s.backupReporter.Stop() // 停止备份报告
+	}
+	if s.taskReporter != nil {
+		// 发送状态码3表示被信号终止
+		if err := s.taskReporter.ReportTaskComplete(StatusStop); err != nil {
+			fs.Errorf(nil, "Failed to send task completion report on signal: %v", err)
+		}
+	}
 }

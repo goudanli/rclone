@@ -533,6 +533,31 @@ var ConfigOptionsInfo = Options{{
 	Default: ".partial",
 	Help:    "Add partial-suffix to temporary file name when --inplace is not used",
 	Groups:  "Copy",
+}, {
+	Name:    "backup_report_url",
+	Default: "",
+	Help:    "Backup data report server URL",
+	Groups:  "Copy",
+}, {
+	Name:    "backup_record_id",
+	Default: "",
+	Help:    "Backup record ID",
+	Groups:  "Copy",
+}, {
+	Name:    "backup_business_type",
+	Default: "",
+	Help:    "Backup business type",
+	Groups:  "Copy",
+}, {
+	Name:    "backup_timepoint",
+	Default: "",
+	Help:    "Backup timepoint",
+	Groups:  "Copy",
+}, {
+	Name:    "update_backup_status",
+	Default: false,
+	Help:    "Update backup status",
+	Groups:  "Copy",
 }}
 
 // ConfigInfo is filesystem config options
@@ -641,6 +666,11 @@ type ConfigInfo struct {
 	Inplace                    bool              `config:"inplace"`      // Download directly to destination file instead of atomic download to temp/rename
 	PartialSuffix              string            `config:"partial_suffix"`
 	MetadataMapper             SpaceSepList      `config:"metadata_mapper"`
+	BackupReportURL            string            `config:"backup_report_url"`
+	BackupRecordID             string            `config:"backup_record_id"`
+	BackupBusinessType         string            `config:"backup_business_type"`
+	BackupTimepoint            string            `config:"backup_timepoint"`
+	UpdateBackupStatus         bool              `config:"update_backup_status"`
 }
 
 func init() {
@@ -799,4 +829,15 @@ func ConfigToEnv(section, name string) string {
 // environment name "RCLONE_IGNORE_SIZE"
 func OptionToEnv(name string) string {
 	return "RCLONE_" + strings.ToUpper(strings.ReplaceAll(name, "-", "_"))
+}
+
+func NewConfig() *ConfigInfo {
+	c := &ConfigInfo{
+		BackupReportURL:    "",
+		BackupRecordID:     "",
+		BackupBusinessType: "",
+		BackupTimepoint:    "",
+		UpdateBackupStatus: false,
+	}
+	return c
 }
