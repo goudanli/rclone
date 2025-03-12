@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/containers/winquit/pkg/winquit"
 	"github.com/rclone/rclone/fs"
 )
 
@@ -41,6 +42,7 @@ func Register(fn func()) FnHandle {
 	registerOnce.Do(func() {
 		exitChan = make(chan os.Signal, 1)
 		signal.Notify(exitChan, exitSignals...)
+		winquit.SimulateSigTermOnQuit(exitChan)
 		go func() {
 			sig := <-exitChan
 			if sig == nil {

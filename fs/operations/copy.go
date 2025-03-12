@@ -373,6 +373,9 @@ func Copy(ctx context.Context, f fs.Fs, dst fs.Object, remote string, src fs.Obj
 	defer func() {
 		tr.Done(ctx, err)
 	}()
+	defer atexit.Unregister(atexit.Register(func() {
+		accounting.Stats(ctx).HandleSignal()
+	}))
 	if SkipDestructive(ctx, src, "copy") {
 		in := tr.Account(ctx, nil)
 		in.DryRun(src.Size())

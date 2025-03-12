@@ -152,6 +152,11 @@ func AddFlags(ci *fs.ConfigInfo, flagSet *pflag.FlagSet) {
 	flags.BoolVarP(flagSet, &ci.Inplace, "inplace", "", ci.Inplace, "Download directly to destination file instead of atomic download to temp/rename", "Copy")
 	flags.StringVarP(flagSet, &partialSuffix, "partial-suffix", "", ci.PartialSuffix, "Add partial-suffix to temporary file name when --inplace is not used", "Copy")
 	flags.FVarP(flagSet, &ci.MetadataMapper, "metadata-mapper", "", "Program to run to transforming metadata before upload", "Metadata")
+	flags.StringVarP(flagSet, &ci.BackupReportURL, "backup-report-url", "", ci.BackupReportURL, "adm backup report url", "Copy")
+	flags.StringVarP(flagSet, &ci.BackupRecordID, "backup-record-id", "", ci.BackupRecordID, "adm backup report id", "Copy")
+	flags.StringVarP(flagSet, &ci.BackupBusinessType, "backup-business-type", "", ci.BackupBusinessType, "adm backup business type", "Copy")
+	flags.StringVarP(flagSet, &ci.BackupTimepoint, "backup-timepoint", "", ci.BackupTimepoint, "adm backup timepoint", "Copy")
+	flags.BoolVarP(flagSet, &ci.UpdateBackupStatus, "update-backup-status", "", ci.UpdateBackupStatus, "enable adm backup update backup status", "Copy")
 }
 
 // ParseHeaders converts the strings passed in via the header flags into HTTPOptions
