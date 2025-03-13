@@ -5,11 +5,12 @@ package atexit
 
 import (
 	"os"
+	"syscall"
 
 	"github.com/rclone/rclone/lib/exitcode"
 )
 
-var exitSignals = []os.Signal{os.Interrupt}
+var exitSignals = []os.Signal{os.Interrupt, syscall.SIGKILL, syscall.SIGINT, syscall.SIGTERM}
 
 func exitCode(_ os.Signal) int {
 	return exitcode.UncategorizedError
