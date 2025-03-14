@@ -835,15 +835,7 @@ func (s *StatsInfo) DoneTransferring(remote string, ok bool) {
 	}
 	if s.transferring.empty() && s.checking.empty() {
 		time.AfterFunc(averageStopAfter, s.stopAverageLoop)
-		if s.backupReporter != nil {
-			s.backupReporter.Stop()
-		}
-		// 当所有传输完成时发送任务完成状态
-		if s.taskReporter != nil {
-			if err := s.taskReporter.ReportTaskComplete(StatusSuccess); err != nil {
-				fs.Errorf(nil, "Failed to send task completion report: %v", err)
-			}
-		}
+		// s.DoneReport()
 	}
 }
 
@@ -954,6 +946,18 @@ func (s *StatsInfo) AddServerSideCopy(n int64) {
 	s.serverSideCopies += 1
 	s.serverSideCopyBytes += n
 	s.mu.Unlock()
+}
+
+func (s *StatsInfo) DoneReport() {
+	if s.backupReporter != nil {
+		s.backupReporter.Stop()
+	}
+	// 当所有传输完成时发送任务完成状态
+	if s.taskReporter != nil {
+		if err := s.taskReporter.ReportTaskComplete(StatusSuccess); err != nil {
+			fs.Errorf(nil, "Failed to send task completion report: %v", err)
+		}
+	}
 }
 
 // 处理信号

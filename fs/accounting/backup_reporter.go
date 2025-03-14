@@ -52,7 +52,7 @@ func NewBackupReporter(ctx context.Context, stats *StatsInfo, serverURL string) 
 		stats:        stats,
 		serverURL:    serverURL,
 		interval:     2 * time.Second,
-		httpClient:   &http.Client{Timeout: 10 * time.Second, Transport: tr},
+		httpClient:   &http.Client{Timeout: 20 * time.Second, Transport: tr},
 		recordID:     stats.ci.BackupRecordID,
 		businessType: stats.ci.BackupBusinessType,
 	}
@@ -62,6 +62,7 @@ func NewBackupReporter(ctx context.Context, stats *StatsInfo, serverURL string) 
 func (br *BackupReporter) Start() {
 	br.wg.Add(1)
 	go br.reportLoop()
+	fs.Logf(nil, "processId:"+strconv.Itoa(os.Getpid()))
 }
 
 // Stop 停止报告
@@ -79,12 +80,12 @@ func (br *BackupReporter) reportLoop() {
 	for {
 		select {
 		case <-br.ctx.Done():
-			if err := br.sendReport(); err != nil {
+			if err := br.SendReport(); err != nil {
 				fs.Errorf(nil, "Failed to send backup report: %v", err)
 			}
 			return
 		case <-ticker.C:
-			if err := br.sendReport(); err != nil {
+			if err := br.SendReport(); err != nil {
 				fs.Errorf(nil, "Failed to send backup report: %v", err)
 			}
 			if err := br.sendHeartBeat(); err != nil {
@@ -95,7 +96,7 @@ func (br *BackupReporter) reportLoop() {
 }
 
 // sendReport 发送单个报告到服务器
-func (br *BackupReporter) sendReport() error {
+func (br *BackupReporter) SendReport() error {
 	// report := br.generateReport()
 	// data, err := json.Marshal(report)
 	// if err != nil {
@@ -105,7 +106,7 @@ func (br *BackupReporter) sendReport() error {
 
 	ts := br.stats.calculateTransferStats()
 
-	req, err := http.NewRequestWithContext(br.ctx, "POST", br.serverURL+"/updateStatistics", nil)
+	req, err := http.NewRequest("POST", br.serverURL+"/updateStatistics", nil)
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
@@ -140,7 +141,7 @@ func (br *BackupReporter) sendHeartBeat() error {
 	values.Add("businessType", br.businessType)
 	values.Add("processId", strconv.Itoa(os.Getpid()))
 	req.URL.RawQuery = values.Encode()
-	fs.Logf(nil, req.URL.String())
+	fs.Infof(nil, req.URL.String())
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}
