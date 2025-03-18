@@ -79,7 +79,7 @@ func (tr *TaskReporter) ReportTaskComplete(status int) error {
 	// 先打印日志，方便调试
 	// fs.Infof(nil, "Sending task completion report: %s", string(data))
 
-	req, err := http.NewRequestWithContext(tr.ctx, "POST", tr.serverURL+"/updateRecordStatus", nil)
+	req, err := http.NewRequest("POST", tr.serverURL+"/updateRecordStatus", nil)
 	if err != nil {
 		return fmt.Errorf("error creating request: %w", err)
 	}

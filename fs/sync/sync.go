@@ -479,6 +479,7 @@ func (s *syncCopyMove) stopTransfers() {
 	s.toBeUploaded.Close()
 	fs.Debugf(s.fdst, "Waiting for transfers to finish")
 	s.transfersWg.Wait()
+	accounting.Stats(s.ctx).DoneReport()
 }
 
 // This starts the background renamers.
