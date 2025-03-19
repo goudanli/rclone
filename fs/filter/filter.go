@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -337,7 +338,16 @@ func (f *Filter) Include(remote string, size int64, modTime time.Time, metadata 
 		_, include := f.files[remote]
 		return include
 	}
-	if !f.ModTimeFrom.IsZero() && modTime.Before(f.ModTimeFrom) {
+	createTime := modTime
+	if metadata != nil {
+		cTime, ok := metadata["createTime"]
+		if ok {
+			result, _ := strconv.ParseInt(cTime, 10, 64)
+			createTime = time.Unix(0, result)
+		}
+	}
+
+	if !f.ModTimeFrom.IsZero() && (modTime.Before(f.ModTimeFrom) && createTime.Before(f.ModTimeFrom)) {
 		return false
 	}
 	if !f.ModTimeTo.IsZero() && modTime.After(f.ModTimeTo) {
@@ -362,6 +372,7 @@ func (f *Filter) Include(remote string, size int64, modTime time.Time, metadata 
 		if !f.metaRules.includeMany(metadatas) {
 			return false
 		}
+
 	}
 	return f.IncludeRemote(remote)
 }
@@ -378,15 +389,14 @@ func (f *Filter) IncludeObject(ctx context.Context, o fs.Object) bool {
 		modTime = time.Unix(0, 0)
 	}
 	var metadata fs.Metadata
-	if f.metaRules.len() > 0 {
-		var err error
-		metadata, err = fs.GetMetadata(ctx, o)
-		if err != nil {
-			fs.Errorf(o, "Failed to read metadata: %v", err)
-			metadata = nil
-		}
-
+	// if f.metaRules.len() > 0 {
+	var err error
+	metadata, err = fs.GetMetadata(ctx, o)
+	if err != nil {
+		fs.Errorf(o, "Failed to read metadata: %v", err)
+		metadata = nil
 	}
+	// }
 	return f.Include(o.Remote(), o.Size(), modTime, metadata)
 }
 
