@@ -135,7 +135,10 @@ func (br *BackupReporter) SendReport() error {
 }
 
 func (br *BackupReporter) sendHeartBeat() error {
-	req, err := http.NewRequestWithContext(br.ctx, "POST", br.serverURL+"/updateHeartBeatTimer", nil)
+	req, err := http.NewRequest("POST", br.serverURL+"/updateHeartBeatTimer", nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
 	values := req.URL.Query()
 	values.Add("recordId", br.recordID)
 	values.Add("businessType", br.businessType)
