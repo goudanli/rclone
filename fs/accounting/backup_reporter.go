@@ -15,15 +15,16 @@ import (
 
 // BackupReporter 负责定期向服务器报告备份数据量
 type BackupReporter struct {
-	ctx          context.Context
-	cancel       context.CancelFunc
-	stats        *StatsInfo
-	serverURL    string
-	interval     time.Duration
-	httpClient   *http.Client
-	wg           sync.WaitGroup
-	recordID     string
-	businessType string
+	ctx              context.Context
+	cancel           context.CancelFunc
+	stats            *StatsInfo
+	serverURL        string
+	interval         time.Duration
+	httpClient       *http.Client
+	wg               sync.WaitGroup
+	recordID         string
+	businessType     string
+	heartBeatTimeout int64
 }
 
 // BackupReport 表示要发送到服务器的数据结构
@@ -47,14 +48,15 @@ func NewBackupReporter(ctx context.Context, stats *StatsInfo, serverURL string) 
 		},
 	}
 	return &BackupReporter{
-		ctx:          ctx,
-		cancel:       cancel,
-		stats:        stats,
-		serverURL:    serverURL,
-		interval:     2 * time.Second,
-		httpClient:   &http.Client{Timeout: 10 * time.Second, Transport: tr},
-		recordID:     stats.ci.BackupRecordID,
-		businessType: stats.ci.BackupBusinessType,
+		ctx:              ctx,
+		cancel:           cancel,
+		stats:            stats,
+		serverURL:        serverURL,
+		interval:         2 * time.Second,
+		httpClient:       &http.Client{Timeout: 10 * time.Second, Transport: tr},
+		recordID:         stats.ci.BackupRecordID,
+		businessType:     stats.ci.BackupBusinessType,
+		heartBeatTimeout: 60,
 	}
 }
 
@@ -91,6 +93,13 @@ func (br *BackupReporter) reportLoop() {
 			}
 			if err := br.sendHeartBeat(); err != nil {
 				fs.Errorf(nil, "Failed to send heart beat: %v", err)
+				if br.heartBeatTimeout <= 0 {
+					fs.Errorf(nil, "Heart beat timeout, exiting...")
+					os.Exit(3)
+				}
+				br.heartBeatTimeout--
+			} else {
+				br.heartBeatTimeout = 60
 			}
 		}
 	}
